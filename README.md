@@ -8,8 +8,10 @@ This project implements a quantum-safe communication system between IoT devices 
 D:\githubt\qiskit\
 ├── keydes.py              # Main implementation file with IoT-Cloud simulation
 ├── quantum_e91_demo.py    # E91 protocol implementation using Qiskit
-├── quantumkey.py         # Quantum key distribution utilities
-└── quantum_cryptography_presentation.md  # Documentation and presentation
+├── quantumkey.py          # Quantum key distribution utilities
+├── api_server_short.py    # A new Working Model for simulating QKD
+└──statics ─> pindex.html  # Frontend for Interactive Simulation
+
 ```
 
 ## Dependencies

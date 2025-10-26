@@ -28,35 +28,36 @@ class E91Protocol:
         
         # Create entangled pairs
         for i in range(0, 2 * num_pairs, 2):
-            circuit.h(qr[i])
-            circuit.cx(qr[i], qr[i+1])
+            circuit.h(qr[i])# Apply Hadamard to first qubit
+            circuit.cx(qr[i], qr[i+1])# CNOT with control=first qubit, target=second qubit
         
         return circuit, qr, cr_alice, cr_bob
     
     def measure_angles(self, circuit, qr, cr_alice, cr_bob, num_pairs):
         """Perform measurements at different angles for Alice and Bob"""
         # E91 protocol uses specific angles
-        alice_angles = [0, np.pi/4, np.pi/2]
-        bob_angles = [0, np.pi/4, np.pi/2]
+        alice_angles = [0, np.pi/4, np.pi/2] # 0°, 45°, 90°
+        bob_angles = [0, np.pi/4, np.pi/2] # 0°, 45°, 90°
         
-        alice_bases = []
-        bob_bases = []
+        alice_bases = [] # Store Alice's measurement bases
+        bob_bases = [] # Store Bob's measurement bases
         
+        # Measure each entangled pair with chosen angles
         for i in range(num_pairs):
             # Randomly choose measurement angles
             alice_angle = np.random.choice(alice_angles)
             bob_angle = np.random.choice(bob_angles)
             
-            alice_bases.append(alice_angle)
-            bob_bases.append(bob_angle)
+            alice_bases.append(alice_angle) # Store Alice's basis
+            bob_bases.append(bob_angle) # Store Bob's basis
             
             # Apply rotation gates
-            circuit.ry(2 * alice_angle, qr[2*i])
-            circuit.ry(2 * bob_angle, qr[2*i+1])
+            circuit.ry(2 * alice_angle, qr[2*i]) # Rotate Alice's qubit
+            circuit.ry(2 * bob_angle, qr[2*i+1]) # Rotate Bob's qubit
             
             # Measure
-            circuit.measure(qr[2*i], cr_alice[i])
-            circuit.measure(qr[2*i+1], cr_bob[i])
+            circuit.measure(qr[2*i], cr_alice[i]) # Measure Alice's qubit
+            circuit.measure(qr[2*i+1], cr_bob[i]) # Measure Bob's qubit
         
         return circuit, alice_bases, bob_bases
 
@@ -174,6 +175,24 @@ def demonstrate_e91_protocol():
     print(f"- Eve's interference positions: {eve_positions}")
     print("- Check the visualization to see the impact of Eve's interference")
     
+    #circuit Diagram
+
+    print("\nGenerating quantum circuit diagram...")
+    try:
+        # Draw the circuit using matplotlib
+        # We pass 'circuit' which now contains all gates (entanglement, Eve, measurements)
+        circuit_diagram = circuit.draw('mpl') 
+        
+        # Save the diagram to a PNG file
+        circuit_diagram.savefig('e91_circuit_diagram.png')
+        print("Quantum circuit diagram saved as 'e91_circuit_diagram.png'")
+    
+    except Exception as e:
+        # Fallback if 'mpl' drawing fails (e.g., missing dependencies like 'pylatexenc')
+        print(f"Could not generate 'mpl' circuit diagram. Error: {e}")
+        print("Trying text-based diagram instead (will not save to file):")
+        print(circuit.draw('text'))
+
     return circuit, result, alice_bits, bob_bits, eve_bits
 
 if __name__ == "__main__":

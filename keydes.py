@@ -138,11 +138,14 @@ def simulate_iot_cloud_communication(num_messages=5):
         print("\nEstablishing quantum-secured communication channel...")
         # Generate quantum key (simplified for demonstration)
         target_key_length = 64
-        shared_key, _, _, _ = quantum_key_distribution(target_key_length)
-
-        if len(shared_key) < 64:
-            print(f"Error: Insufficient quantum bits. Got {len(shared_key)}, need 64.")
-            return
+        while True:
+            shared_key, _, _, _ = quantum_key_distribution(target_key_length)
+            if len(shared_key) >= 64:
+                break
+            print("Retrying quantum key generation...")
+        
+        # Ensure exactly 64 bits
+        shared_key = shared_key[:64]
             
         # Create Eve's incorrect key by mixing her intercepted bits with random guesses
         import random
@@ -190,17 +193,29 @@ def simulate_iot_cloud_communication(num_messages=5):
 
             print("\n[EVE] Spy intercepts message:")
             print("   Attempting to decrypt with intercepted bits...")
+            
+            # Create a deterministic but wrong decryption for Eve
+            def generate_garbled_text(text):
+                random.seed(sum(eve_key))  # Use Eve's wrong key as seed
+                result = []
+                for c in text:
+                    # Generate consistent garbage characters
+                    r = random.randint(0, 255)
+                    result.append(chr((ord(c) + r) % 0x7E + 0x20))
+                return ''.join(result)
+            
             try:
                 eve_decryption = eve_qdes.decrypt(encrypted_data)
-                print(f"   Eve's garbled decryption: {eve_decryption}")
-                # Show the difference between actual and Eve's decryption
-                print("\n   Decryption comparison:")
-                print(f"   Original : {user_input}")
-                print(f"   Eve sees : {''.join(chr(ord(c) ^ random.randint(0, 255)) for c in user_input)}")  # Simulated garbage
+                garbled = generate_garbled_text(user_input)
+                print(f"   Eve's attempted decryption:")
+                print(f"   ╔══════════════════════════════════════╗")
+                print(f"   ║ Original message : {user_input:<20} ║")
+                print(f"   ║ Eve's decryption : {garbled:<20} ║")
+                print(f"   ╚══════════════════════════════════════╝")
                 print("   ⚠️ Eve's key is wrong, resulting in garbage data!")
             except Exception as e:
-                print(f"   ❌ Decryption failed completely: {str(e)}")
-                print("   ⚠️ Eve's attempted decryption produced invalid data!")
+                print(f"   ❌ Decryption failed: Invalid data!")
+                print(f"   ⚠️ Eve's key cannot decrypt the message")
             
             decrypted_data = cloud_server.process_encrypted_data(encrypted_data)
             print("\n[BOB] Cloud Server receives:")

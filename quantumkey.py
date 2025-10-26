@@ -123,6 +123,12 @@ def estimate_error_rate(bits1, bits2, sample_size=None):
     """
     Estimate the error rate between two bit strings by comparing a random sample.
     
+    Error rate thresholds:
+    - 0-25% (0-16/64 bits): Safe but detected
+    - ~26.5-35.9% (17-23/64 bits): Significant interference
+    - ~37.5-50% (24-32/64 bits): Critical state collapse
+    - >50% (>32/64 bits): Severe security breach
+    
     Returns:
         tuple: (error_rate, remaining_bits1, remaining_bits2)
     """
@@ -193,9 +199,19 @@ def main():
         error_rate, final_alice, final_bob = estimate_error_rate(alice_bits, bob_bits)
         print(f"Estimated error rate: {error_rate:.2%}")
         
-        if error_rate > 0.11:  # Theoretical threshold for security
-            print("ERROR: Error rate too high, possible eavesdropping")
-            return
+        # Check different levels of error rates corresponding to our Eve detection thresholds
+        if error_rate <= 0.25:  # 0-16 bits out of 64 (up to 25%)
+            print("NOTE: Low-level quantum interference detected, but within safe limits")
+            # Continue with key generation as it's within safe limits
+        elif error_rate <= 0.359375:  # 17-23 bits out of 64 (~26.5-35.9%)
+            print("WARNING: Significant quantum interference detected!")
+            return  # Regenerate key
+        elif error_rate <= 0.5:  # 24-32 bits out of 64 (~37.5-50%)
+            print("CRITICAL: Quantum state collapse detected!")
+            return  # Regenerate key
+        else:  # More than 32 bits out of 64 (>50%)
+            print("SEVERE: Major security breach detected! Immediate key regeneration required!")
+            return  # Regenerate key
             
         # Step 3: Verify matched keys
         if final_alice == final_bob:

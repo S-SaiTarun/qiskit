@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Optimized Quantum-Secure Communication Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+        .container {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .column {
+            flex: 1;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        .column:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .key-display {
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            word-break: break-all;
+            position: relative;
+            overflow: hidden;
+        }
+        .key-display.animate {
+            animation: key-update 0.5s ease;
+        }
+        @keyframes key-update {
+            0% { background-color: #fff3cd; }
+            100% { background-color: #f8f9fa; }
+        }
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            opacity: 1;
+        }
+        .message.fade {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        .info { background: #cce5ff; color: #004085; }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        button:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+        button:active {
+            transform: translateY(1px);
+        }
+        button.loading::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.2);
+            animation: loading 1s infinite;
+        }
+        @keyframes loading {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+        }
+        input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+        }
+        .key-type-select {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        .key-type-btn {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #007bff;
+            background: white;
+            color: #007bff;
+            transition: all 0.3s ease;
+        }
+        .key-type-btn.active {
+            background: #007bff;
+            color: white;
+        }
+        .title {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .status-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            background: #28a745;
+            color: white;
+        }
+        .status-badge.offline {
+            background: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <div class="header">
+        <h1>Optimized Quantum-Secure Communication Demo</h1>
+        <button id="init-keys-btn" onclick="initializeKeys()">Initialize New Keys</button>
+        <div id="connection-status" class="status-badge">Connected</div>
+    </div>
+
+    <div class="container">
+        <!-- Alice's Column -->
+        <div class="column">
+            <div class="title">Alice (IOT Device)</div>
+            <div class="key-type-select">
+                <button class="key-type-btn active" onclick="selectKeyType('classic', this)">Classic Key</button>
+                <button class="key-type-btn" onclick="selectKeyType('quantum', this)">Quantum Key</button>
+            </div>
+            <div class="key-display" id="alice-key">No key generated</div>
+            <input type="text" 
+                   id="message-input" 
+                   placeholder="Enter message to send..."
+                   onkeyup="handleInput(event)">
+            <button id="send-btn" onclick="sendMessage()" disabled>Send Message</button>
+            <div class="message" id="alice-status"></div>
+        </div>
+
+        <!-- Bob's Column -->
+        <div class="column">
+            <div class="title">Bob (Server)</div>
+            <div class="key-display" id="bob-key">No key received</div>
+            <div class="message" id="bob-encrypted"></div>
+            <div class="message" id="bob-decrypted"></div>
+            <div class="message" id="bob-status"></div>
+        </div>
+
+        <!-- Eve's Column -->
+        <div class="column">
+            <div class="title">Eve (Eavesdropper)</div>
+            <div class="key-display" id="eve-key">No key intercepted</div>
+            <button id="attack-btn" onclick="attemptEveAttack()">Attempt Attack</button>
+            <div class="message" id="eve-status"></div>
+        </div>
+    </div>
+
+    <script>
+        // State management
+        const state = {
+            currentKeyType: 'classic',
+            lastEncryptedMessage: '',
+            messageCache: new Map(),
+            keyCache: new Map(),
+            isProcessing: false
+        };
+
+        // Utility functions
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
+        function showLoading(show = true) {
+            document.getElementById('loading-overlay').style.display = show ? 'flex' : 'none';
+            state.isProcessing = show;
+        }
+
+        function updateConnectionStatus(online) {
+            const status = document.getElementById('connection-status');
+            status.textContent = online ? 'Connected' : 'Offline';
+            status.classList.toggle('offline', !online);
+        }
+
+        // API calls with retry mechanism
+        async function apiCall(endpoint, data = null, retries = 3) {
+            try {
+                const response = await fetch(`http://localhost:5001/${endpoint}`, {
+                    method: data ? 'POST' : 'GET',
+                    headers: data ? { 'Content-Type': 'application/json' } : {},
+                    body: data ? JSON.stringify(data) : undefined,
+                    mode: 'cors'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(await response.text());
+                }
+                
+                updateConnectionStatus(true);
+                return await response.json();
+            } catch (error) {
+                updateConnectionStatus(false);
+                if (retries > 0) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    return apiCall(endpoint, data, retries - 1);
+                }
+                throw error;
+            }
+        }
+
+        function selectKeyType(type, btn) {
+            if (state.isProcessing) return;
+            state.currentKeyType = type;
+            document.querySelectorAll('.key-type-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        async function initializeKeys() {
+            try {
+                const initBtn = document.getElementById('init-keys-btn');
+                initBtn.classList.add('loading');
+                showLoading();
+
+                const data = await apiCall('init_keys');
+                
+                // Animate key updates
+                ['alice-key', 'bob-key'].forEach(id => {
+                    const element = document.getElementById(id);
+                    element.classList.add('animate');
+                    element.innerText = 
+                        `Classic Key: ${data.classic_key.slice(0,16).join('')}...\n` +
+                        `Quantum Key: ${data.quantum_key.slice(0,16).join('')}...`;
+                    setTimeout(() => element.classList.remove('animate'), 500);
+                });
+
+                document.getElementById('eve-key').innerText = 'Attempting to intercept...';
+                
+                showMessage('alice-status', 'Keys generated successfully!', 'success');
+                showMessage('bob-status', 'Keys received successfully!', 'success');
+                showMessage('eve-status', `QBER: ${(data.qber * 100).toFixed(2)}%`, 'info');
+
+                // Cache the keys
+                state.keyCache.set('classic', data.classic_key);
+                state.keyCache.set('quantum', data.quantum_key);
+            } catch (error) {
+                showMessage('alice-status', error.message, 'error');
+            } finally {
+                document.getElementById('init-keys-btn').classList.remove('loading');
+                showLoading(false);
+            }
+        }
+
+        function handleInput(event) {
+            const value = event.target.value;
+            const sendBtn = document.getElementById('send-btn');
+            sendBtn.disabled = !value.trim() || state.isProcessing;
+        }
+
+        async function sendMessage() {
+            const message = document.getElementById('message-input').value;
+            if (!message || state.isProcessing) return;
+
+            const sendBtn = document.getElementById('send-btn');
+            sendBtn.classList.add('loading');
+            showLoading(true);
+
+            try {
+                // Check cache for identical message and key type
+                const cacheKey = `${message}-${state.currentKeyType}`;
+                let encryptedData = state.messageCache.get(cacheKey);
+
+                if (!encryptedData) {
+                    encryptedData = await apiCall('encrypt', {
+                        message: message,
+                        key_type: state.currentKeyType
+                    });
+                    state.messageCache.set(cacheKey, encryptedData);
+                }
+
+                state.lastEncryptedMessage = encryptedData.encrypted_msg;
+                showMessage('alice-status', 'Message encrypted successfully!', 'success');
+                showMessage('bob-encrypted', 
+                    `Received encrypted: ${encryptedData.encrypted_msg.substring(0, 32)}...`, 'info');
+                
+                // Automatic decryption
+                await decryptMessage(encryptedData.encrypted_msg);
+            } catch (error) {
+                showMessage('alice-status', error.message, 'error');
+            } finally {
+                sendBtn.classList.remove('loading');
+                showLoading(false);
+
+                // Reset the input and button state
+                document.getElementById('message-input').value = '';
+                sendBtn.disabled = true;
+            }
+        }
+
+        async function decryptMessage(encryptedMsg) {
+            try {
+                const data = await apiCall('decrypt', {
+                    encrypted_msg: encryptedMsg,
+                    key_type: state.currentKeyType
+                });
+                
+                showMessage('bob-decrypted', `Decrypted: ${data.decrypted_msg}`, 'success');
+                showMessage('bob-status', 'Message decrypted successfully!', 'success');
+            } catch (error) {
+                showMessage('bob-status', error.message, 'error');
+            }
+        }
+
+        async function attemptEveAttack() {
+            if (state.isProcessing) return;
+
+            try {
+                const attackBtn = document.getElementById('attack-btn');
+                attackBtn.classList.add('loading');
+                showLoading();
+
+                const data = await apiCall('eve_attack', {
+                    key_type: state.currentKeyType
+                });
+                
+                document.getElementById('eve-key').innerText = 
+                    `Intercepted Key: ${data.eve_key}...`;
+                
+                let messageClass = 'info';
+                if (data.status === 'cracked') {
+                    messageClass = 'success';
+                    showMessage('eve-status', data.log_msg, messageClass);
+                } else if (data.status === 'detected' || data.status === 'detected_reinit') {
+                    messageClass = 'error';
+                    showMessage('alice-status', data.log_msg, messageClass);
+                    
+                    if (state.currentKeyType === 'quantum') {
+                        if (data.status === 'detected_reinit' && data.new_quantum_key) {
+                            // Update the quantum keys for Alice and Bob
+                            ['alice-key', 'bob-key'].forEach(id => {
+                                const element = document.getElementById(id);
+                                element.classList.add('animate');
+                                element.innerText = 
+                                    `Classic Key: ${state.keyCache.get('classic').slice(0,16).join('')}...\n` +
+                                    `Quantum Key: ${data.new_quantum_key.slice(0,16).join('')}...`;
+                                setTimeout(() => element.classList.remove('animate'), 500);
+                            });
+                            // Update cache with new quantum key
+                            state.keyCache.set('quantum', data.new_quantum_key);
+                            showMessage('eve-status', 'Attack failed: New quantum key generated', messageClass);
+                        } else {
+                            showMessage('eve-status', 'Attack failed: Quantum key discarded', messageClass);
+                        }
+                    } else {
+                        showMessage('eve-status', 'Attack failed', messageClass);
+                    }
+                } else if (data.status === 'progress') {
+                    messageClass = 'warning';  // Use warning color for partial success
+                    showMessage('eve-status', data.log_msg, messageClass);
+                } else {
+                    showMessage('eve-status', data.log_msg, messageClass);
+                }
+            } catch (error) {
+                showMessage('eve-status', error.message, 'error');
+            } finally {
+                document.getElementById('attack-btn').classList.remove('loading');
+                showLoading(false);
+            }
+        }
+
+        function showMessage(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.classList.add('fade');
+            
+            setTimeout(() => {
+                element.innerText = message;
+                element.className = `message ${type}`;
+                element.classList.remove('fade');
+            }, 300);
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeKeys();
+            // Initialize button states
+            const messageInput = document.getElementById('message-input');
+            const sendBtn = document.getElementById('send-btn');
+            sendBtn.disabled = !messageInput.value.trim();
+        });
+
+        // Handle connection status
+        window.addEventListener('online', () => updateConnectionStatus(true));
+        window.addEventListener('offline', () => updateConnectionStatus(false));
+    </script>
+</body>
+</html>
